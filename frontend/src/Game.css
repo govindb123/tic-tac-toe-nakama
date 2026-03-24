@@ -261,3 +261,32 @@
   font-weight: 600;
   animation: pulse 1.5s infinite;
 }
+
+.timer-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.timer-bar-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.timer-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 1s linear, background 0.3s;
+}
+
+.timer-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  min-width: 28px;
+  text-align: right;
+  transition: color 0.3s;
+}

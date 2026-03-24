@@ -3,13 +3,6 @@ import "./Game.css";
 
 const WINNING_LINES = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
 
-function checkWinner(board) {
-  for (const [a, b, c] of WINNING_LINES) {
-    if (board[a] && board[a] === board[b] && board[a] === board[c]) return board[a];
-  }
-  return board.every(cell => cell !== "") ? "Draw" : null;
-}
-
 function getWinningCells(board) {
   for (const [a, b, c] of WINNING_LINES) {
     if (board[a] && board[a] === board[b] && board[a] === board[c]) return [a, b, c];
@@ -27,12 +20,15 @@ export default function Game({ socket, matchId, onBack, onHome }) {
   const [opponentLeft, setOpponentLeft] = useState(false);
   const [rematchPending, setRematchPending] = useState(false);
   const [myRematchVoted, setMyRematchVoted] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(30);
+  const [timedOutPlayer, setTimedOutPlayer] = useState(null);
+
   const joinedMatchIdRef = useRef(null);
   const readyRef = useRef(false);
+  const timerRef = useRef(null);
   const username = localStorage.getItem("username");
 
   useEffect(() => {
-    // MUST set handler before joinMatch so we don't miss the broadcast
     socket.onmatchdata = (msg) => {
       try {
         const decoded = typeof msg.data === "string" ? msg.data : new TextDecoder().decode(msg.data);
@@ -43,13 +39,30 @@ export default function Game({ socket, matchId, onBack, onHome }) {
           setBoard(data.board);
           setCurrentPlayer(data.currentPlayer);
           setWinner(data.winner || null);
+          if (data.winner && timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+          if (data.timeLeft !== undefined) {
+            setTimeLeft(data.timeLeft);
+            if (!data.winner) {
+              if (timerRef.current) clearInterval(timerRef.current);
+              timerRef.current = setInterval(() => {
+                setTimeLeft(prev => (prev > 0 ? prev - 1 : 0));
+              }, 1000);
+            }
+          }
+          if (data.timeout) setTimedOutPlayer(data.timedOutPlayer);
           if (data.ready) {
-            setReady(true);
-            readyRef.current = true;
+            setReady(true); readyRef.current = true;
+            if (timerRef.current) clearInterval(timerRef.current);
+            timerRef.current = setInterval(() => {
+              setTimeLeft(prev => (prev > 0 ? prev - 1 : 0));
+            }, 1000);
           }
           if (data.rematch) {
+            if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
             setRematchPending(false);
             setMyRematchVoted(false);
+            setTimedOutPlayer(null);
+            setTimeLeft(30);
           }
           if (data.players) {
             setPlayers(data.players);
@@ -59,6 +72,14 @@ export default function Game({ socket, matchId, onBack, onHome }) {
         }
         if (msg.op_code === 3) setOpponentLeft(true);
         if (msg.op_code === 4) setRematchPending(true);
+        if (msg.op_code === 5) {
+          setTimeLeft(data.timeLeft);
+          setCurrentPlayer(data.currentPlayer);
+          if (timerRef.current) clearInterval(timerRef.current);
+          timerRef.current = setInterval(() => {
+            setTimeLeft(prev => (prev > 0 ? prev - 1 : 0));
+          }, 1000);
+        }
       } catch (err) {
         console.error("onmatchdata error:", err);
       }
@@ -67,17 +88,12 @@ export default function Game({ socket, matchId, onBack, onHome }) {
     socket.joinMatch(matchId)
       .then((joined) => {
         joinedMatchIdRef.current = joined.match_id;
-        console.log("Joined match:", joined.match_id, "presences:", joined.presences?.length);
-
-        // poll every second until ready
         const interval = setInterval(() => {
-          if (readyRef.current) {
-            clearInterval(interval);
-          } else if (joinedMatchIdRef.current) {
+          if (readyRef.current) { clearInterval(interval); return; }
+          if (joinedMatchIdRef.current) {
             socket.sendMatchState(joined.match_id, 10, JSON.stringify({ resync: true }));
           }
         }, 1000);
-
         joinedMatchIdRef.interval = interval;
       })
       .catch(err => console.error("joinMatch failed:", err));
@@ -85,6 +101,7 @@ export default function Game({ socket, matchId, onBack, onHome }) {
     return () => {
       socket.onmatchdata = null;
       if (joinedMatchIdRef.interval) clearInterval(joinedMatchIdRef.interval);
+      if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [socket, matchId, username]);
 
@@ -101,9 +118,16 @@ export default function Game({ socket, matchId, onBack, onHome }) {
   const winningCells = winner && winner !== "Draw" ? getWinningCells(board) : [];
   const isMyTurn = ready && mySymbol === currentPlayer && !winner;
 
+  const timerPct = (timeLeft / 30) * 100;
+  const timerColor = timeLeft > 10 ? "#34d399" : timeLeft > 5 ? "#fbbf24" : "#f87171";
+
   const statusText = opponentLeft ? "Opponent left the match"
     : !ready ? "Waiting for opponent..."
-    : winner ? (winner === "Draw" ? "It's a Draw!" : (winner === mySymbol ? "You Win! 🎉" : "You Lose 😔"))
+    : winner ? (
+        timedOutPlayer ? `${timedOutPlayer} ran out of time!`
+        : winner === "Draw" ? "It's a Draw!"
+        : winner === mySymbol ? "You Win! 🎉" : "You Lose 😔"
+      )
     : isMyTurn ? "Your turn" : "Opponent's turn";
 
   const statusClass = opponentLeft || !ready ? "status-waiting"
@@ -131,6 +155,15 @@ export default function Game({ socket, matchId, onBack, onHome }) {
 
         <div className={`status-badge ${statusClass}`}>{statusText}</div>
 
+        {ready && !winner && (
+          <div className="timer-bar-wrap">
+            <div className="timer-bar-track">
+              <div className="timer-bar-fill" style={{ width: timerPct + "%", background: timerColor }} />
+            </div>
+            <span className="timer-label" style={{ color: timerColor }}>{timeLeft}s</span>
+          </div>
+        )}
+
         <div className="board">
           {board.map((cell, i) => (
             <div
@@ -147,7 +180,7 @@ export default function Game({ socket, matchId, onBack, onHome }) {
           <div className="end-actions">
             {!opponentLeft && (
               <button className="rematch-btn" onClick={handleRematch} disabled={myRematchVoted}>
-                {myRematchVoted ? (rematchPending ? "Waiting for opponent..." : "Waiting...") : "🔄 Rematch"}
+                {myRematchVoted ? "Waiting for opponent..." : "🔄 Rematch"}
               </button>
             )}
             {!myRematchVoted && rematchPending && !opponentLeft && (

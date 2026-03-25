@@ -1,25 +1,36 @@
+version: "3.8"
+
 services:
   nakama:
-    image: heroiclabs/nakama
+    image: heroiclabs/nakama:3.17.0
     ports:
       - "7350:7350"
       - "7349:7349"
     depends_on:
-      - cockroachdb
+      - postgres
     entrypoint:
       - "/bin/sh"
       - "-ecx"
       - |
+        echo "Waiting for DB..."
         sleep 10
-        /nakama/nakama migrate up --database.address root@cockroachdb:26257/nakama
+        /nakama/nakama migrate up --database.address postgres:postgres@postgres:5432/nakama?sslmode=disable
         exec /nakama/nakama \
           --name nakama1 \
-          --database.address root@cockroachdb:26257/nakama \
+          --database.address postgres:postgres@postgres:5432/nakama?sslmode=disable \
           --logger.level DEBUG \
           --runtime.js_entrypoint match_handler.js
     volumes:
-        - ./modules:/nakama/data/modules
+      - ./modules:/nakama/data/modules
 
-  cockroachdb:
-    image: cockroachdb/cockroach:latest
-    command: start-single-node --insecure
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: nakama
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

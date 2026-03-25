@@ -1,6 +1,10 @@
 import { Client } from "@heroiclabs/nakama-js";
 
-const client = new Client("defaultkey", "127.0.0.1", 7350, false);
+const host = process.env.REACT_APP_NAKAMA_HOST || "127.0.0.1";
+const port = process.env.REACT_APP_NAKAMA_PORT || 7350;
+const useSSL = process.env.REACT_APP_NAKAMA_SSL === "true";
+
+const client = new Client("defaultkey", host, port, useSSL);
 
 export async function initNakama(username) {
   let deviceId = localStorage.getItem("deviceId");
@@ -12,7 +16,7 @@ export async function initNakama(username) {
   const session = await client.authenticateDevice(deviceId, true, username);
   localStorage.setItem("username", session.username);
 
-  const socket = client.createSocket(false, false);
+  const socket = client.createSocket(useSSL, false);
   await socket.connect(session, false);
 
   return { client, socket, session };

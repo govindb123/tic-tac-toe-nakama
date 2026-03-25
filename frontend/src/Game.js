@@ -18,15 +18,31 @@ export default function Game({ socket, matchId, onBack, onHome }) {
   const [players, setPlayers] = useState([]);
   const [ready, setReady] = useState(false);
   const [opponentLeft, setOpponentLeft] = useState(false);
+  const [rematchVoted, setRematchVoted] = useState(false);
   const [rematchPending, setRematchPending] = useState(false);
-  const [myRematchVoted, setMyRematchVoted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(30);
   const [timedOutPlayer, setTimedOutPlayer] = useState(null);
 
   const joinedMatchIdRef = useRef(null);
   const readyRef = useRef(false);
   const timerRef = useRef(null);
+  // refs to avoid stale closures in handleClick
+  const winnerRef = useRef(null);
+  const mySymbolRef = useRef(null);
+  const currentPlayerRef = useRef("X");
+
   const username = localStorage.getItem("username");
+
+  const startTimer = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setTimeLeft(prev => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+  };
+
+  const stopTimer = () => {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+  };
 
   useEffect(() => {
     socket.onmatchdata = (msg) => {
@@ -36,49 +52,59 @@ export default function Game({ socket, matchId, onBack, onHome }) {
         console.log("op_code:", msg.op_code, "data:", data);
 
         if (msg.op_code === 1 && data.board) {
+          if (data.rematch) {
+            setBoard(data.board);
+            setCurrentPlayer(data.currentPlayer);
+            currentPlayerRef.current = data.currentPlayer;
+            setWinner(null);
+            winnerRef.current = null;
+            setTimedOutPlayer(null);
+            setRematchVoted(false);
+            setRematchPending(false);
+            setReady(true);
+            readyRef.current = true;
+            setTimeLeft(30);
+            if (data.players) {
+              setPlayers(data.players);
+              const me = data.players.find(p => p.username === username);
+              if (me) { setMySymbol(me.symbol); mySymbolRef.current = me.symbol; }
+            }
+            startTimer();
+            return;
+          }
+
           setBoard(data.board);
           setCurrentPlayer(data.currentPlayer);
-          setWinner(data.winner || null);
-          if (data.winner && timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-          if (data.timeLeft !== undefined) {
-            setTimeLeft(data.timeLeft);
-            if (!data.winner) {
-              if (timerRef.current) clearInterval(timerRef.current);
-              timerRef.current = setInterval(() => {
-                setTimeLeft(prev => (prev > 0 ? prev - 1 : 0));
-              }, 1000);
-            }
-          }
-          if (data.timeout) setTimedOutPlayer(data.timedOutPlayer);
-          if (data.ready) {
-            setReady(true); readyRef.current = true;
-            if (timerRef.current) clearInterval(timerRef.current);
-            timerRef.current = setInterval(() => {
-              setTimeLeft(prev => (prev > 0 ? prev - 1 : 0));
-            }, 1000);
-          }
-          if (data.rematch) {
-            if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-            setRematchPending(false);
-            setMyRematchVoted(false);
-            setTimedOutPlayer(null);
-            setTimeLeft(30);
-          }
+          currentPlayerRef.current = data.currentPlayer;
+
           if (data.players) {
             setPlayers(data.players);
             const me = data.players.find(p => p.username === username);
-            if (me) setMySymbol(me.symbol);
+            if (me) { setMySymbol(me.symbol); mySymbolRef.current = me.symbol; }
+          }
+
+          if (data.ready) { setReady(true); readyRef.current = true; }
+          if (data.timeout) setTimedOutPlayer(data.timedOutPlayer);
+
+          if (data.winner) {
+            setWinner(data.winner);
+            winnerRef.current = data.winner;
+            stopTimer();
+          } else {
+            setWinner(null);
+            winnerRef.current = null;
+            if (data.timeLeft !== undefined) setTimeLeft(data.timeLeft);
+            startTimer();
           }
         }
+
         if (msg.op_code === 3) setOpponentLeft(true);
         if (msg.op_code === 4) setRematchPending(true);
         if (msg.op_code === 5) {
           setTimeLeft(data.timeLeft);
           setCurrentPlayer(data.currentPlayer);
-          if (timerRef.current) clearInterval(timerRef.current);
-          timerRef.current = setInterval(() => {
-            setTimeLeft(prev => (prev > 0 ? prev - 1 : 0));
-          }, 1000);
+          currentPlayerRef.current = data.currentPlayer;
+          startTimer();
         }
       } catch (err) {
         console.error("onmatchdata error:", err);
@@ -101,17 +127,19 @@ export default function Game({ socket, matchId, onBack, onHome }) {
     return () => {
       socket.onmatchdata = null;
       if (joinedMatchIdRef.interval) clearInterval(joinedMatchIdRef.interval);
-      if (timerRef.current) clearInterval(timerRef.current);
+      stopTimer();
     };
   }, [socket, matchId, username]);
 
   const handleClick = (index) => {
-    if (!ready || board[index] !== "" || winner || mySymbol !== currentPlayer) return;
+    if (!readyRef.current || winnerRef.current || mySymbolRef.current !== currentPlayerRef.current) return;
+    if (board[index] !== "") return;
     socket.sendMatchState(joinedMatchIdRef.current, 1, JSON.stringify({ index }));
   };
 
   const handleRematch = () => {
-    setMyRematchVoted(true);
+    if (!joinedMatchIdRef.current) return;
+    setRematchVoted(true);
     socket.sendMatchState(joinedMatchIdRef.current, 20, JSON.stringify({ rematch: true }));
   };
 
@@ -179,11 +207,11 @@ export default function Game({ socket, matchId, onBack, onHome }) {
         {(winner || opponentLeft) && (
           <div className="end-actions">
             {!opponentLeft && (
-              <button className="rematch-btn" onClick={handleRematch} disabled={myRematchVoted}>
-                {myRematchVoted ? "Waiting for opponent..." : "🔄 Rematch"}
+              <button className="rematch-btn" onClick={handleRematch} disabled={rematchVoted}>
+                {rematchVoted ? "Waiting for opponent..." : "🔄 Rematch"}
               </button>
             )}
-            {!myRematchVoted && rematchPending && !opponentLeft && (
+            {rematchPending && !rematchVoted && !opponentLeft && (
               <div className="rematch-notice">Opponent wants a rematch!</div>
             )}
             <button className="reset-btn" onClick={onBack}>← Back to Lobby</button>

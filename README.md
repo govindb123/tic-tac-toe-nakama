@@ -2,8 +2,13 @@
 
 A production-ready, server-authoritative multiplayer Tic-Tac-Toe game built with React (frontend) and Nakama (backend).
 
-🎮 **Live Demo:** [https://tic-tac-toe-nakama-govind.vercel.app](https://tic-tac-toe-nakama-govind.vercel.app)
+🎮 **Live Demo:** 
 
+Frontend:-  https://tic-tac-toe-nakama-govind.vercel.app 
+
+Backend:-  https://unfreezable-cushily-leoma.ngrok-free.dev
+
+> Note: The backend is exposed using ngrok (free tier). If the backend is not accessible, please contact me to restart the server.
 ---
 
 ## Features

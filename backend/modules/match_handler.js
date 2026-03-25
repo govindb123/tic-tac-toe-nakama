@@ -33,6 +33,9 @@ function matchInit(ctx, logger, nk, params) {
 }
 
 function matchJoinAttempt(ctx, logger, nk, dispatcher, tick, state, presence, metadata) {
+  var key = getKey(presence);
+  // allow rejoin if player is already in the match
+  if (state.players[key]) return { state: state, accept: true };
   if (Object.keys(state.players).length >= 2) return { state: state, accept: false };
   return { state: state, accept: true };
 }
@@ -129,11 +132,11 @@ function matchLoop(ctx, logger, nk, dispatcher, tick, state, messages) {
 
     // op_code 20 = rematch vote
     if (msg.op_code === 20 || msg.op_code === "20") {
-      state.rematchVotes[senderKey] = true;
+      var voterId = msg.sender.userId || msg.sender.user_id || senderKey;
+      state.rematchVotes[voterId] = true;
       var totalVotes = Object.keys(state.rematchVotes).length;
-      var totalPlayers = Object.keys(state.players).length;
-      logger.info("Rematch vote: " + senderKey + " votes=" + totalVotes + "/" + totalPlayers);
-      if (totalVotes >= totalPlayers && totalPlayers >= 2) {
+      logger.info("Rematch vote from userId=" + voterId + " totalVotes=" + totalVotes);
+      if (totalVotes >= 2) {
         state.board = ["","","","","","","","",""];
         state.currentPlayer = "X";
         state.winner = null;
@@ -147,8 +150,10 @@ function matchLoop(ctx, logger, nk, dispatcher, tick, state, messages) {
           winner: null, players: playerList3, ready: true, rematch: true,
           timeLeft: TURN_TIMEOUT_SECONDS,
         }));
+        logger.info("Rematch started!");
       } else {
-        dispatcher.broadcastMessage(4, JSON.stringify({ rematchPending: true, votes: totalVotes, needed: totalPlayers }));
+        dispatcher.broadcastMessage(4, JSON.stringify({ rematchPending: true }));
+        logger.info("Rematch pending, waiting for second vote");
       }
       continue;
     }

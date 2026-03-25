@@ -1,70 +1,127 @@
-# Getting Started with Create React App
+# Multiplayer Tic-Tac-Toe — Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+React 18 frontend for the multiplayer Tic-Tac-Toe game powered by Nakama backend.
+
+🎮 **Live Demo:** [https://tic-tac-toe-nakama-govind.vercel.app](https://tic-tac-toe-nakama-govind.vercel.app)
+
+---
+
+## Tech Stack
+
+| | |
+|---|---|
+| Framework | React 18 |
+| Nakama SDK | nakama-js |
+| Hosting | Vercel |
+| Styling | Plain CSS (responsive, mobile-optimized) |
+
+---
+
+## Project Structure
+
+```
+frontend/
+├── public/
+└── src/
+    ├── App.js        # Screen router: Login → Lobby → Game
+    ├── nakama.js     # Nakama client, device auth, socket connection
+    ├── Login.js      # Username entry screen
+    ├── Lobby.js      # Create/join room + leaderboard
+    ├── Game.js       # Game board, timer, rematch
+    ├── Login.css
+    ├── Lobby.css
+    └── Game.css
+```
+
+---
+
+## Setup & Installation
+
+### Prerequisites
+
+- Node.js 16+
+- Backend running (see `/backend/README` or root `README.md`)
+
+### Install & Run
+
+```bash
+npm install
+npm start
+```
+
+Open [http://localhost:3000](http://localhost:3000)
+
+### Environment Variables
+
+Create a `.env` file in this folder to point to your backend:
+
+```
+REACT_APP_NAKAMA_HOST=xxxx-xx-xx.ngrok-free.app
+REACT_APP_NAKAMA_PORT=443
+REACT_APP_NAKAMA_SSL=true
+```
+
+For local backend (default):
+
+```
+REACT_APP_NAKAMA_HOST=127.0.0.1
+REACT_APP_NAKAMA_PORT=7350
+REACT_APP_NAKAMA_SSL=false
+```
+
+---
 
 ## Available Scripts
 
-In the project directory, you can run:
+| Script | Description |
+|--------|-------------|
+| `npm start` | Run in development mode at `http://localhost:3000` |
+| `npm run build` | Build for production into the `build/` folder |
+| `npm test` | Launch test runner in interactive watch mode |
 
-### `npm start`
+---
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Screens
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### Login
+- Enter a username to authenticate
+- Uses Nakama device authentication
+- Session is persisted in `localStorage` — auto-reconnects on page refresh
 
-### `npm test`
+### Lobby
+- Create a room → get a 6-character code → share with friend
+- Join a room → enter the code → enter the game
+- Leaderboard shows top 10 players by wins (refreshable)
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Game
+- Real-time board updated via WebSocket
+- Turn indicator shows whose move it is
+- 30-second countdown timer per turn (auto-forfeit on timeout)
+- Rematch button after game ends — both players must vote
+- Back to Lobby / Home buttons available at all times
 
-### `npm run build`
+---
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Deployment (Vercel)
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+1. Push this folder (or the full repo) to GitHub
+2. Import the project on [vercel.com](https://vercel.com)
+3. Set root directory to `frontend`
+4. Add environment variables in Vercel project settings:
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```
+REACT_APP_NAKAMA_HOST = xxxx-xx-xx.ngrok-free.app
+REACT_APP_NAKAMA_PORT = 443
+REACT_APP_NAKAMA_SSL  = true
+```
 
-### `npm run eject`
+5. Deploy — Vercel auto-deploys on every push to main
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+---
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## ⚠️ Important Note
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+The backend is exposed using **ngrok (free tier)**.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- Access the live demo within the **active time window**
+- If the backend is unreachable, please **contact me to restart the server**

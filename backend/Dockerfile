@@ -2,12 +2,13 @@ FROM heroiclabs/nakama:3.17.0
 
 COPY modules /nakama/data/modules
 
-CMD ["/bin/sh", "-ecx", "\
-echo 'Running migration...' && \
-/nakama/nakama migrate up --database.address $DB_ADDR && \
-echo 'Starting Nakama...' && \
-exec /nakama/nakama \
+ENTRYPOINT ["/bin/sh", "-ecx"]
+
+CMD echo "Running migration..." && \
+/nakama/nakama migrate up --database.address="$DB_ADDR" && \
+echo "Starting Nakama..." && \
+/nakama/nakama \
 --name nakama1 \
---database.address $DB_ADDR \
+--database.address="$DB_ADDR" \
 --logger.level DEBUG \
---runtime.js_entrypoint match_handler.js"]
+--runtime.js_entrypoint match_handler.js

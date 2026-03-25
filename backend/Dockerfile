@@ -3,7 +3,9 @@ FROM heroiclabs/nakama:3.17.0
 COPY modules /nakama/data/modules
 
 CMD ["/bin/sh", "-ecx", "\
+echo 'Running migration...' && \
 /nakama/nakama migrate up --database.address $DB_ADDR && \
+echo 'Starting Nakama...' && \
 exec /nakama/nakama \
 --name nakama1 \
 --database.address $DB_ADDR \

@@ -45,9 +45,10 @@ function matchJoin(ctx, logger, nk, dispatcher, tick, state, presences) {
   for (var i = 0; i < presences.length; i++) {
     var p = presences[i];
     var key = getKey(p);
-    logger.info("Player joining: username=" + p.username + " userId=" + p.userId + " key=" + key);
+    var userId = p.userId || p.user_id;
+    logger.info("Player joining: username=" + p.username + " userId=" + userId + " sessionId=" + p.sessionId + " key=" + key);
     var symbol = playerCount === 0 ? "X" : "O";
-    state.players[key] = { username: p.username, userId: p.userId || p.user_id || key, symbol: symbol };
+    state.players[key] = { username: p.username, userId: userId, symbol: symbol };
     playerCount++;
   }
 
@@ -100,7 +101,7 @@ function matchLoop(ctx, logger, nk, dispatcher, tick, state, messages) {
       var playerList = Object.values(state.players).map(function(pl) {
         return { username: pl.username, symbol: pl.symbol };
       });
-      writeLeaderboard(nk, state);
+      writeLeaderboard(nk, logger, state);
       dispatcher.broadcastMessage(1, JSON.stringify({
         board: state.board, currentPlayer: state.currentPlayer,
         winner: state.winner, players: playerList, ready: true,
@@ -174,7 +175,7 @@ function matchLoop(ctx, logger, nk, dispatcher, tick, state, messages) {
       state.turnStartTick = tick; // reset timer on valid move
     }
 
-    if (state.winner) writeLeaderboard(nk, state);
+    if (state.winner) writeLeaderboard(nk, logger, state);
 
     var playerList4 = Object.values(state.players).map(function(pl) {
       return { username: pl.username, symbol: pl.symbol };
@@ -188,16 +189,20 @@ function matchLoop(ctx, logger, nk, dispatcher, tick, state, messages) {
   return { state: state };
 }
 
-function writeLeaderboard(nk, state) {
+function writeLeaderboard(nk, logger, state) {
+  if (!state.winner || state.winner === "Draw") return;
   var players = Object.values(state.players);
   for (var j = 0; j < players.length; j++) {
     var pl = players[j];
+    if (pl.symbol !== state.winner) continue;
     var userId = pl.userId;
     if (!userId || userId === "unknown") continue;
-    var score = pl.symbol === state.winner ? 1 : 0;
     try {
-      nk.leaderboardRecordWrite("tictactoe_wins", userId, pl.username, score, 0, {});
-    } catch(e) {}
+      nk.leaderboardRecordWrite("tictactoe_wins", userId, pl.username, 1, 0, {});
+      logger.info("Leaderboard write: " + pl.username + " userId=" + userId);
+    } catch(e) {
+      logger.error("Leaderboard write failed: " + e);
+    }
   }
 }
 
@@ -236,7 +241,7 @@ function rpcJoinRoom(ctx, logger, nk, payload) {
 }
 
 function InitModule(ctx, logger, nk, initializer) {
-  try { nk.leaderboardCreate("tictactoe_wins", false, "desc", "incr"); } catch(e) {}
+  try { nk.leaderboardCreate("tictactoe_wins", false, "desc", "incr"); logger.info("Leaderboard created"); } catch(e) { logger.info("Leaderboard already exists: " + e); }
   initializer.registerMatch("match_handler", {
     matchInit, matchJoinAttempt, matchJoin, matchLeave,
     matchLoop, matchTerminate, matchSignal,

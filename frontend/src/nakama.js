@@ -1,12 +1,16 @@
 import { Client } from "@heroiclabs/nakama-js";
 
-const host = process.env.REACT_APP_NAKAMA_HOST || "127.0.0.1";
-const port = process.env.REACT_APP_NAKAMA_PORT || 7350;
-const useSSL = process.env.REACT_APP_NAKAMA_SSL === "true";
-
-const client = new Client("defaultkey", host, port, useSSL);
+function buildClient() {
+  const stored = localStorage.getItem("nakamaHost");
+  const host = stored || process.env.REACT_APP_NAKAMA_HOST || "127.0.0.1";
+  const port = stored ? 443 : (process.env.REACT_APP_NAKAMA_PORT || 7350);
+  const useSSL = stored ? true : (process.env.REACT_APP_NAKAMA_SSL === "true");
+  return { client: new Client("defaultkey", host, port, useSSL), useSSL };
+}
 
 export async function initNakama(username) {
+  const { client, useSSL } = buildClient();
+
   let deviceId = localStorage.getItem("deviceId");
   if (!deviceId) {
     deviceId = `${username}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -23,6 +27,7 @@ export async function initNakama(username) {
 }
 
 export async function refreshSession(session) {
+  const { client } = buildClient();
   try {
     return await client.sessionRefresh(session);
   } catch {
@@ -32,5 +37,5 @@ export async function refreshSession(session) {
   }
 }
 
-export { client };
+export { buildClient };
  

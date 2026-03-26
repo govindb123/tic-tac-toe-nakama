@@ -6,6 +6,8 @@ React 18 frontend for the multiplayer Tic-Tac-Toe game powered by Nakama backend
 
 🖥️ **Backend:** [https://tic-tac-toe-nakama-o8hr.onrender.com](https://tic-tac-toe-nakama-o8hr.onrender.com)
 
+The render server may take **~30 or 60 seconds to wake up** after inactivity
+
 ---
 
 ## Tech Stack

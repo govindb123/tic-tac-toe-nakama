@@ -8,6 +8,9 @@ Frontend: https://tic-tac-toe-nakama-govind.vercel.app
 
 Backend: https://tic-tac-toe-nakama-o8hr.onrender.com
 ---
+The backend (render) server may take **~30 to 60 seconds to wake up** after inactivity
+
+
 
 ## Features
 
@@ -24,6 +27,8 @@ Backend: https://tic-tac-toe-nakama-o8hr.onrender.com
 
 ---
 
+
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -36,6 +41,8 @@ Backend: https://tic-tac-toe-nakama-o8hr.onrender.com
 | Frontend Hosting | Vercel |
 
 ---
+
+
 
 ## Project Structure
 
@@ -56,6 +63,8 @@ tic-tac-toe-nakama/
 ```
 
 ---
+
+
 
 ## Setup & Installation
 
@@ -95,6 +104,8 @@ REACT_APP_NAKAMA_SSL=true
 
 ---
 
+
+
 ## How to Test Multiplayer
 
 1. Open two browser tabs (or two different browsers) at [https://tic-tac-toe-nakama-govind.vercel.app](https://tic-tac-toe-nakama-govind.vercel.app)
@@ -106,6 +117,8 @@ REACT_APP_NAKAMA_SSL=true
 7. Check the **Leaderboard** in the lobby to see win rankings update after each game
 
 ---
+
+
 
 ## Architecture & Design Decisions
 
@@ -121,9 +134,13 @@ All game logic runs inside Nakama's JavaScript runtime match handler (`match_han
 
 The server validates every move and broadcasts the authoritative state back to all clients. Clients cannot manipulate game state — any invalid move (wrong turn, occupied cell, out of range) is silently rejected.
 
+
+
 ### Player Identity & Authentication
 
 Players authenticate via Nakama's device authentication using a unique `deviceId` generated from their username + timestamp + random string. This is stored in `localStorage` for session persistence across page refreshes. Players are identified by `username` throughout the match lifecycle.
+
+
 
 ### Turn Timer
 
@@ -132,6 +149,7 @@ The server tracks `turnStartTick` on every valid move. Each `matchLoop` tick (ru
 - Every second, the server broadcasts `op_code 5` with `{ timeLeft, currentPlayer }`
 - At 30 seconds, the server auto-forfeits the current player, the opponent wins, leaderboard is updated, and result is broadcast
 - The client also runs a local `setInterval` countdown synced to server ticks for smooth UI updates
+
 
 ### Room-Code Matchmaking
 
@@ -154,11 +172,13 @@ Uses Nakama's built-in leaderboard (`tictactoe_wins`) with `operator: incr`:
 - Top 10 players are displayed in the lobby, refreshable on demand
 - Data is persisted in PostgreSQL — survives server restarts
 
+
 ### Rematch System
 
 After a game ends, either player can vote for a rematch via `op_code 20`. The server tracks votes — when both players vote, the board resets, timer resets to 30s, and a new game starts in the same match without reconnecting.
 
 ---
+
 
 ## API / Server Configuration
 
@@ -191,6 +211,7 @@ After a game ends, either player can vote for a rematch via `op_code 20`. The se
 
 ---
 
+
 ## Deployment
 
 | Service | URL |
@@ -222,6 +243,8 @@ Push to GitHub — Vercel auto-deploys on every commit.
 
 ---
 
+
+
 ## ⚠️ Important Note
 
 The backend is hosted on **Render (free tier)**.
@@ -230,6 +253,7 @@ The backend is hosted on **Render (free tier)**.
 - If the backend is unreachable, please wait a moment and refresh the page
 
 ---
+
 
 ## Environment Notes
 

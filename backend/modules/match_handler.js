@@ -196,12 +196,13 @@ function writeLeaderboard(nk, logger, state) {
     var pl = players[j];
     var userId = pl.userId;
     if (!userId || userId === "unknown") continue;
-    var score = pl.symbol === state.winner ? 1 : 0;
+    var isWinner = pl.symbol === state.winner;
     try {
-      nk.leaderboardRecordWrite("tictactoe_wins", userId, pl.username, score, 0, {});
-      logger.info("Leaderboard write: " + pl.username + " score=" + score);
+      // winner: score+1, loser: subscore+1 (creates record with score=0 if new)
+      nk.leaderboardRecordWrite("tictactoe_wins", userId, pl.username, isWinner ? 1 : 0, isWinner ? 0 : 1, {});
+      logger.info("Leaderboard write: " + pl.username + " winner=" + isWinner);
     } catch(e) {
-      logger.error("Leaderboard write failed: " + e);
+      logger.error("Leaderboard write failed for " + pl.username + ": " + e);
     }
   }
 }

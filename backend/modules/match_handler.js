@@ -194,12 +194,12 @@ function writeLeaderboard(nk, logger, state) {
   var players = Object.values(state.players);
   for (var j = 0; j < players.length; j++) {
     var pl = players[j];
-    if (pl.symbol !== state.winner) continue;
     var userId = pl.userId;
     if (!userId || userId === "unknown") continue;
+    var score = pl.symbol === state.winner ? 1 : 0;
     try {
-      nk.leaderboardRecordWrite("tictactoe_wins", userId, pl.username, 1, 0, {});
-      logger.info("Leaderboard write: " + pl.username + " userId=" + userId);
+      nk.leaderboardRecordWrite("tictactoe_wins", userId, pl.username, score, 0, {});
+      logger.info("Leaderboard write: " + pl.username + " score=" + score);
     } catch(e) {
       logger.error("Leaderboard write failed: " + e);
     }

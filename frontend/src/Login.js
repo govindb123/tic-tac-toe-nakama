@@ -3,15 +3,10 @@ import "./Login.css";
 
 export default function Login({ onLogin, error }) {
   const [username, setUsername] = useState(localStorage.getItem("username") || "");
-  const [serverUrl, setServerUrl] = useState(localStorage.getItem("nakamaHost") || "");
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!username.trim()) return;
-    const trimmed = serverUrl.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
-    if (trimmed) localStorage.setItem("nakamaHost", trimmed);
-    else localStorage.removeItem("nakamaHost");
-    onLogin(username.trim());
+    if (username.trim()) onLogin(username.trim());
   };
 
   return (
@@ -30,16 +25,6 @@ export default function Login({ onLogin, error }) {
             maxLength={20}
             autoFocus
           />
-          <input
-            className="login-input"
-            type="text"
-            placeholder="Server URL (e.g. xxxx.ngrok-free.app)"
-            value={serverUrl}
-            onChange={(e) => setServerUrl(e.target.value)}
-          />
-          <p style={{ color: "rgba(255,255,255,0.3)", fontSize: "0.75rem", margin: "-6px 0", textAlign: "center" }}>
-            Leave blank to use default server
-          </p>
           <button className="login-btn" type="submit" disabled={!username.trim()}>
             Let's Play →
           </button>

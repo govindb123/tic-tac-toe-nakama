@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { buildClient } from "./nakama";
+import { client } from "./nakama";
 import "./Lobby.css";
 
 export default function Lobby({ socket, session, onMatchFound, onHome }) {
@@ -16,7 +16,6 @@ export default function Lobby({ socket, session, onMatchFound, onHome }) {
 
   const fetchLeaderboard = useCallback(async () => {
     try {
-      const { client } = buildClient();
       const result = await client.listLeaderboardRecords(session, "tictactoe_wins", [], 10);
       setLeaderboard(result.records || []);
     } catch (e) { console.error("fetchLeaderboard error:", e); }

@@ -283,6 +283,16 @@
   transition: width 1s linear, background 0.3s;
 }
 
+.mode-badge {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 50px;
+  background: rgba(167,139,250,0.12);
+  border: 1px solid rgba(167,139,250,0.3);
+  color: #a78bfa;
+}
+
 .timer-label {
   font-size: 0.85rem;
   font-weight: 700;

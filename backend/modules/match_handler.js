@@ -22,11 +22,12 @@ function matchInit(ctx, logger, nk, params) {
       board: ["","","","","","","","",""],
       currentPlayer: "X",
       winner: null,
-      players: {},       // key: username -> { username, userId, symbol }
+      players: {},
       ready: false,
       rematchVotes: {},
       turnStartTick: 0,
       tickRate: 10,
+      gameMode: (params && params.gameMode) || "timed",
     },
     tickRate: 10,
   };
@@ -64,7 +65,7 @@ function matchJoin(ctx, logger, nk, dispatcher, tick, state, presences) {
     dispatcher.broadcastMessage(1, JSON.stringify({
       board: state.board, currentPlayer: state.currentPlayer,
       winner: null, players: playerList, ready: true,
-      timeLeft: TURN_TIMEOUT_SECONDS,
+      timeLeft: TURN_TIMEOUT_SECONDS, gameMode: state.gameMode,
     }));
   }
   return { state: state };
@@ -83,8 +84,8 @@ function matchLeave(ctx, logger, nk, dispatcher, tick, state, presences) {
 }
 
 function matchLoop(ctx, logger, nk, dispatcher, tick, state, messages) {
-  // --- Turn timer ---
-  if (state.ready && !state.winner) {
+  // --- Turn timer (timed mode only) ---
+  if (state.gameMode === "timed" && state.ready && !state.winner) {
     var elapsed = (tick - state.turnStartTick) / state.tickRate;
     var timeLeft = Math.max(0, Math.ceil(TURN_TIMEOUT_SECONDS - elapsed));
 
@@ -198,9 +199,28 @@ function writeLeaderboard(nk, logger, state) {
     if (!userId || userId === "unknown") continue;
     var isWinner = pl.symbol === state.winner;
     try {
-      // winner: score+1, loser: subscore+1 (creates record with score=0 if new)
-      nk.leaderboardRecordWrite("tictactoe_wins", userId, pl.username, isWinner ? 1 : 0, isWinner ? 0 : 1, {});
-      logger.info("Leaderboard write: " + pl.username + " winner=" + isWinner);
+      // read current streak from storage
+      var streakData = { streak: 0, bestStreak: 0 };
+      try {
+        var stored = nk.storageRead([{ collection: "streaks", key: "streak", userId: userId }]);
+        if (stored && stored.length > 0) streakData = stored[0].value;
+      } catch(e) {}
+
+      var newStreak = isWinner ? (streakData.streak > 0 ? streakData.streak + 1 : 1) : 0;
+      var newBest = Math.max(streakData.bestStreak || 0, newStreak);
+
+      nk.storageWrite([{
+        collection: "streaks", key: "streak", userId: userId,
+        value: { streak: newStreak, bestStreak: newBest },
+        permissionRead: 2, permissionWrite: 1,
+      }]);
+
+      // winner: score+1, loser: subscore+1; metadata carries streak info
+      nk.leaderboardRecordWrite("tictactoe_wins", userId, pl.username,
+        isWinner ? 1 : 0, isWinner ? 0 : 1,
+        { streak: newStreak, bestStreak: newBest }
+      );
+      logger.info("Leaderboard write: " + pl.username + " winner=" + isWinner + " streak=" + newStreak);
     } catch(e) {
       logger.error("Leaderboard write failed for " + pl.username + ": " + e);
     }
@@ -216,6 +236,8 @@ function matchSignal(ctx, logger, nk, dispatcher, tick, state) {
 }
 
 function rpcCreateRoom(ctx, logger, nk, payload) {
+  var data = payload ? JSON.parse(payload) : {};
+  var gameMode = data.gameMode === "classic" ? "classic" : "timed";
   var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   var code = "";
   for (var i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
@@ -223,11 +245,11 @@ function rpcCreateRoom(ctx, logger, nk, payload) {
   nk.storageWrite([{
     collection: "rooms", key: code,
     userId: "00000000-0000-0000-0000-000000000000",
-    value: { matchId: matchId },
+    value: { matchId: matchId, gameMode: gameMode },
     permissionRead: 2, permissionWrite: 1,
   }]);
-  logger.info("Room created: " + code + " -> " + matchId);
-  return JSON.stringify({ code: code, matchId: matchId });
+  logger.info("Room created: " + code + " -> " + matchId + " mode=" + gameMode);
+  return JSON.stringify({ code: code, matchId: matchId, gameMode: gameMode });
 }
 
 function rpcJoinRoom(ctx, logger, nk, payload) {
@@ -237,8 +259,9 @@ function rpcJoinRoom(ctx, logger, nk, payload) {
     userId: "00000000-0000-0000-0000-000000000000",
   }]);
   if (!result || result.length === 0) throw Error("Room not found: " + data.code);
-  logger.info("Room joined: " + data.code + " -> " + result[0].value.matchId);
-  return JSON.stringify({ matchId: result[0].value.matchId });
+  var roomData = result[0].value;
+  logger.info("Room joined: " + data.code + " -> " + roomData.matchId + " mode=" + roomData.gameMode);
+  return JSON.stringify({ matchId: roomData.matchId, gameMode: roomData.gameMode || "timed" });
 }
 
 function InitModule(ctx, logger, nk, initializer) {

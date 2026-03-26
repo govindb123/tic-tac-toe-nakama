@@ -10,7 +10,7 @@ Backend: https://tic-tac-toe-nakama-o8hr.onrender.com
 ---
 The backend (render) server may take **~30 to 60 seconds to wake up** after inactivity
 
-
+------------------------------------------------------------------------
 
 ## Features
 
@@ -25,8 +25,7 @@ The backend (render) server may take **~30 to 60 seconds to wake up** after inac
 - **Responsive UI** — optimized for both desktop and mobile devices
 - **Session persistence** — auto-reconnects on page refresh using stored device identity
 
----
-
+------------------------------------------------------------------------
 
 
 ## Tech Stack
@@ -40,7 +39,7 @@ The backend (render) server may take **~30 to 60 seconds to wake up** after inac
 | Backend Hosting | Render |
 | Frontend Hosting | Vercel |
 
----
+------------------------------------------------------------------------
 
 
 
@@ -62,7 +61,7 @@ tic-tac-toe-nakama/
     └── package.json
 ```
 
----
+------------------------------------------------------------------------
 
 
 
@@ -102,7 +101,9 @@ REACT_APP_NAKAMA_PORT=443
 REACT_APP_NAKAMA_SSL=true
 ```
 
----
+------------------------------------------------------------------------
+
+
 
 
 
@@ -116,7 +117,8 @@ REACT_APP_NAKAMA_SSL=true
 6. After the game ends, both players can click **Rematch** to play again in the same room
 7. Check the **Leaderboard** in the lobby to see win rankings update after each game
 
----
+------------------------------------------------------------------------
+
 
 
 
@@ -157,6 +159,7 @@ The server tracks `turnStartTick` on every valid move. Each `matchLoop` tick (ru
 - `rpcJoinRoom` — reads the storage entry by code and returns the `matchId`
 - Both players call `socket.joinMatch(matchId)` independently
 - Rooms are isolated — each match has its own state, players, and timer
+- Room-code approach was chosen over random matchmaking to allow friends to play together directly
 
 ### Concurrent Game Support
 
@@ -166,9 +169,13 @@ Each room creates a separate Nakama authoritative match instance. Match state is
 
 Uses Nakama's built-in leaderboard (`tictactoe_wins`) with `operator: incr`:
 
-- Each win increments the player's score by 1
-- Writes happen server-side in `writeLeaderboard()` after every game conclusion (win or timeout)
-- Draw results in 0 points for both players
+- Each win increments the player's **score** by 1
+- Each loss increments the player's **subscore** (losses counter) by 1
+- Both winner and loser records are written after every game
+- **Win streak** is tracked in Nakama storage per player — increments on win, resets to 0 on loss
+- **Best streak** is also persisted and stored in leaderboard metadata
+- Leaderboard displays `W / L` and active streak 🔥 (shown when streak ≥ 2)
+- Draw results in no score change for either player
 - Top 10 players are displayed in the lobby, refreshable on demand
 - Data is persisted in PostgreSQL — survives server restarts
 
@@ -177,7 +184,9 @@ Uses Nakama's built-in leaderboard (`tictactoe_wins`) with `operator: incr`:
 
 After a game ends, either player can vote for a rematch via `op_code 20`. The server tracks votes — when both players vote, the board resets, timer resets to 30s, and a new game starts in the same match without reconnecting.
 
----
+------------------------------------------------------------------------
+
+
 
 
 ## API / Server Configuration
@@ -209,7 +218,8 @@ After a game ends, either player can vote for a rematch via `op_code 20`. The se
 --database.address postgres@postgres:5432/nakama
 ```
 
----
+------------------------------------------------------------------------
+
 
 
 ## Deployment
@@ -241,7 +251,7 @@ REACT_APP_NAKAMA_SSL  = true
 
 Push to GitHub — Vercel auto-deploys on every commit.
 
----
+------------------------------------------------------------------------
 
 
 
@@ -252,7 +262,8 @@ The backend is hosted on **Render (free tier)**.
 - The server may take **~30 seconds to wake up** after a period of inactivity
 - If the backend is unreachable, please wait a moment and refresh the page
 
----
+------------------------------------------------------------------------
+
 
 
 ## Environment Notes

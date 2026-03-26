@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { client } from "./nakama";
+import { buildClient } from "./nakama";
 import "./Lobby.css";
 
 export default function Lobby({ socket, session, onMatchFound, onHome }) {
   const [mode, setMode] = useState(null);
+  const [gameMode, setGameMode] = useState("timed");
   const [roomCode, setRoomCode] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [waiting, setWaiting] = useState(false);
@@ -16,6 +17,7 @@ export default function Lobby({ socket, session, onMatchFound, onHome }) {
 
   const fetchLeaderboard = useCallback(async () => {
     try {
+      const { client } = buildClient();
       const result = await client.listLeaderboardRecords(session, "tictactoe_wins", [], 10);
       setLeaderboard(result.records || []);
     } catch (e) { console.error("fetchLeaderboard error:", e); }
@@ -27,7 +29,8 @@ export default function Lobby({ socket, session, onMatchFound, onHome }) {
     setError("");
     setLoading(true);
     try {
-      const res = await client.rpc(session, "create_room", {});
+      const { client } = buildClient();
+      const res = await client.rpc(session, "create_room", { gameMode });
       const payload = typeof res.payload === "string" ? JSON.parse(res.payload) : res.payload;
       const { code, matchId } = payload;
       setRoomCode(code);
@@ -46,11 +49,12 @@ export default function Lobby({ socket, session, onMatchFound, onHome }) {
     setError("");
     setWaiting(true);
     try {
+      const { client } = buildClient();
       const code = joinCode.trim().toUpperCase();
       const res = await client.rpc(session, "join_room", { code });
       const payload = typeof res.payload === "string" ? JSON.parse(res.payload) : res.payload;
-      const { matchId } = payload;
-      onMatchFound(matchId);
+      const { matchId, gameMode: gm } = payload;
+      onMatchFound(matchId, gm || gameMode);
     } catch (e) {
       console.error("joinRoom error:", e);
       setError("Room not found. Check the code and try again.");
@@ -79,11 +83,21 @@ export default function Lobby({ socket, session, onMatchFound, onHome }) {
           {error && <p className="error-msg" style={{marginBottom: "12px"}}>{error}</p>}
 
           {!mode && (
-            <div className="mode-btns">
-              <button className="find-btn" onClick={createRoom} disabled={loading}>
-                {loading ? "Creating..." : "🎮 Create Room"}
-              </button>
-              <button className="join-btn" onClick={() => setMode("join")} disabled={loading}>🔗 Join Room</button>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "14px", width: "100%" }}>
+              <div className="mode-selector">
+                <button
+                  className={`mode-opt ${gameMode === "timed" ? "mode-opt-active" : ""}`}
+                  onClick={() => setGameMode("timed")}>⏱ Timed (30s)</button>
+                <button
+                  className={`mode-opt ${gameMode === "classic" ? "mode-opt-active" : ""}`}
+                  onClick={() => setGameMode("classic")}>♟ Classic</button>
+              </div>
+              <div className="mode-btns">
+                <button className="find-btn" onClick={createRoom} disabled={loading}>
+                  {loading ? "Creating..." : "🎮 Create Room"}
+                </button>
+                <button className="join-btn" onClick={() => setMode("join")} disabled={loading}>🔗 Join Room</button>
+              </div>
             </div>
           )}
 
@@ -92,7 +106,7 @@ export default function Lobby({ socket, session, onMatchFound, onHome }) {
               <p className="room-label">Share this code with your friend:</p>
               <div className="room-code">{roomCode}</div>
               <p className="room-label">Then click below to enter the game and wait</p>
-              <button className="find-btn" onClick={() => onMatchFound(matchIdRef.current)} style={{ marginTop: "8px" }}>
+              <button className="find-btn" onClick={() => onMatchFound(matchIdRef.current, gameMode)} style={{ marginTop: "8px" }}>
                 ▶ Enter Game Room
               </button>
               <button className="cancel-btn" onClick={reset}>Cancel</button>
@@ -134,7 +148,10 @@ export default function Lobby({ socket, session, onMatchFound, onHome }) {
                 <li key={record.owner_id} className={`leaderboard-item ${i === 0 ? "gold" : i === 1 ? "silver" : i === 2 ? "bronze" : ""}`}>
                   <span className="rank">{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}</span>
                   <span className="lb-username">{record.username}</span>
-                  <span className="lb-score">{record.score} wins</span>
+                  <span className="lb-score">{record.score}W / {record.subscore}L</span>
+                  {record.metadata && record.metadata.streak > 1 && (
+                    <span className="lb-streak">🔥{record.metadata.streak}</span>
+                  )}
                 </li>
               ))}
             </ul>

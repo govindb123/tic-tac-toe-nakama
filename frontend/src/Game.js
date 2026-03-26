@@ -10,7 +10,7 @@ function getWinningCells(board) {
   return [];
 }
 
-export default function Game({ socket, matchId, onBack, onHome }) {
+export default function Game({ socket, matchId, gameMode, onBack, onHome }) {
   const [board, setBoard] = useState(Array(9).fill(""));
   const [currentPlayer, setCurrentPlayer] = useState("X");
   const [winner, setWinner] = useState(null);
@@ -22,6 +22,7 @@ export default function Game({ socket, matchId, onBack, onHome }) {
   const [rematchPending, setRematchPending] = useState(false);
   const [timeLeft, setTimeLeft] = useState(30);
   const [timedOutPlayer, setTimedOutPlayer] = useState(null);
+  const [serverGameMode, setServerGameMode] = useState(gameMode);
 
   const joinedMatchIdRef = useRef(null);
   const readyRef = useRef(false);
@@ -84,6 +85,7 @@ export default function Game({ socket, matchId, onBack, onHome }) {
           }
 
           if (data.ready) { setReady(true); readyRef.current = true; }
+          if (data.gameMode) setServerGameMode(data.gameMode);
           if (data.timeout) setTimedOutPlayer(data.timedOutPlayer);
 
           if (data.winner) {
@@ -168,6 +170,7 @@ export default function Game({ socket, matchId, onBack, onHome }) {
         <div className="game-top-bar">
           <button className="back-btn" onClick={onBack}>← Lobby</button>
           <h1 className="game-title">Tic Tac Toe</h1>
+          <span className="mode-badge">{serverGameMode === "timed" ? "⏱ Timed" : "♟ Classic"}</span>
           <button className="back-btn" onClick={onHome}>🚪 Home</button>
         </div>
 
@@ -183,7 +186,7 @@ export default function Game({ socket, matchId, onBack, onHome }) {
 
         <div className={`status-badge ${statusClass}`}>{statusText}</div>
 
-        {ready && !winner && (
+        {ready && !winner && serverGameMode === "timed" && (
           <div className="timer-bar-wrap">
             <div className="timer-bar-track">
               <div className="timer-bar-fill" style={{ width: timerPct + "%", background: timerColor }} />

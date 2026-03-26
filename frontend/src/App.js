@@ -11,6 +11,7 @@ export default function App() {
   const [socket, setSocket] = useState(null);
   const [session, setSession] = useState(null);
   const [matchId, setMatchId] = useState(null);
+  const [gameMode, setGameMode] = useState("timed");
   const [loginError, setLoginError] = useState("");
 
   useEffect(() => {
@@ -45,8 +46,9 @@ export default function App() {
     }
   };
 
-  const handleMatchFound = (matchId) => {
+  const handleMatchFound = (matchId, gm) => {
     setMatchId(matchId);
+    setGameMode(gm || "timed");
     setScreen("game");
   };
 
@@ -78,5 +80,5 @@ export default function App() {
 
   if (screen === "login") return <Login onLogin={handleLogin} error={loginError} />;
   if (screen === "lobby") return <Lobby socket={socket} session={session} onMatchFound={handleMatchFound} onHome={handleHome} />;
-  if (screen === "game") return <Game socket={socket} matchId={matchId} onBack={handleBackToLobby} onHome={handleHome} />;
+  if (screen === "game") return <Game socket={socket} matchId={matchId} gameMode={gameMode} onBack={handleBackToLobby} onHome={handleHome} />;
 }

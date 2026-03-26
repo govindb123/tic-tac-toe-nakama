@@ -4,6 +4,8 @@ React 18 frontend for the multiplayer Tic-Tac-Toe game powered by Nakama backend
 
 🎮 **Live Demo:** [https://tic-tac-toe-nakama-govind.vercel.app](https://tic-tac-toe-nakama-govind.vercel.app)
 
+🖥️ **Backend:** [https://tic-tac-toe-nakama-o8hr.onrender.com](https://tic-tac-toe-nakama-o8hr.onrender.com)
+
 ---
 
 ## Tech Stack
@@ -56,7 +58,7 @@ Open [http://localhost:3000](http://localhost:3000)
 Create a `.env` file in this folder to point to your backend:
 
 ```
-REACT_APP_NAKAMA_HOST=xxxx-xx-xx.ngrok-free.app
+REACT_APP_NAKAMA_HOST=tic-tac-toe-nakama-o8hr.onrender.com
 REACT_APP_NAKAMA_PORT=443
 REACT_APP_NAKAMA_SSL=true
 ```
@@ -110,7 +112,7 @@ REACT_APP_NAKAMA_SSL=false
 4. Add environment variables in Vercel project settings:
 
 ```
-REACT_APP_NAKAMA_HOST = xxxx-xx-xx.ngrok-free.app
+REACT_APP_NAKAMA_HOST = tic-tac-toe-nakama-o8hr.onrender.com
 REACT_APP_NAKAMA_PORT = 443
 REACT_APP_NAKAMA_SSL  = true
 ```
@@ -121,7 +123,7 @@ REACT_APP_NAKAMA_SSL  = true
 
 ## ⚠️ Important Note
 
-The backend is exposed using **ngrok (free tier)**.
+The backend is hosted on **Render (free tier)**.
 
-- Access the live demo within the **active time window**
-- If the backend is unreachable, please **contact me to restart the server**
+- The server may take **~30 seconds to wake up** after inactivity
+- If the backend is unreachable, please wait a moment and refresh

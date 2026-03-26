@@ -2,13 +2,11 @@
 
 A production-ready, server-authoritative multiplayer Tic-Tac-Toe game built with React (frontend) and Nakama (backend).
 
-🎮 **Live Demo:** 
+🎮 **Live Demo:**
 
-Frontend:-  https://tic-tac-toe-nakama-govind.vercel.app 
+Frontend: https://tic-tac-toe-nakama-govind.vercel.app
 
-Backend:-  https://unfreezable-cushily-leoma.ngrok-free.dev
-
-> Note: The backend is exposed using ngrok (free tier). If the backend is not accessible, please contact me to restart the server.
+Backend: https://tic-tac-toe-nakama-o8hr.onrender.com
 ---
 
 ## Features
@@ -34,7 +32,7 @@ Backend:-  https://unfreezable-cushily-leoma.ngrok-free.dev
 | Backend | Nakama (heroiclabs/nakama) |
 | Database | PostgreSQL 16 |
 | Containerization | Docker / Docker Compose |
-| Backend Tunnel | ngrok (free tier) |
+| Backend Hosting | Render |
 | Frontend Hosting | Vercel |
 
 ---
@@ -65,7 +63,6 @@ tic-tac-toe-nakama/
 
 - [Docker](https://docs.docker.com/get-docker/) + Docker Compose
 - [Node.js](https://nodejs.org/) 16+
-- [ngrok](https://ngrok.com/) (for public backend access)
 
 ### 1. Start the Backend
 
@@ -78,15 +75,7 @@ docker compose up -d
 - Nakama console at `http://localhost:7351` (admin / password)
 - PostgreSQL starts with a health check — Nakama waits until it's ready automatically
 
-### 2. Expose Backend via ngrok
-
-```bash
-ngrok http 7350
-```
-
-Copy the HTTPS URL shown (e.g. `https://xxxx-xx-xx.ngrok-free.app`)
-
-### 3. Start the Frontend
+### 2. Start the Frontend
 
 ```bash
 cd frontend
@@ -96,10 +85,10 @@ npm start
 
 Open [http://localhost:3000](http://localhost:3000)
 
-To connect to the ngrok backend locally, create a `.env` file in the `frontend/` folder:
+To connect to the Render backend, create a `.env` file in the `frontend/` folder:
 
 ```
-REACT_APP_NAKAMA_HOST=xxxx-xx-xx.ngrok-free.app
+REACT_APP_NAKAMA_HOST=tic-tac-toe-nakama-o8hr.onrender.com
 REACT_APP_NAKAMA_PORT=443
 REACT_APP_NAKAMA_SSL=true
 ```
@@ -207,29 +196,24 @@ After a game ends, either player can vote for a rematch via `op_code 20`. The se
 | Service | URL |
 |---------|-----|
 | Frontend (Vercel) | https://tic-tac-toe-nakama-govind.vercel.app |
-| Backend (ngrok) | Active when server is running — contact me for current URL |
+| Backend (Render) | https://tic-tac-toe-nakama-o8hr.onrender.com |
 
-### Backend — Local + ngrok
+### Backend — Render
 
-The backend runs locally via Docker and is exposed publicly using **ngrok** (free tier).
+The backend is deployed on **Render** using the `Dockerfile` in the `backend/` folder.
 
-```bash
-# Step 1: Start backend services (Nakama + PostgreSQL)
-cd backend
-docker compose up -d
+Set the following environment variable in Render:
 
-# Step 2: Expose Nakama port publicly
-ngrok http 7350
 ```
-
-Copy the ngrok HTTPS URL and update the Vercel environment variables.
+DATABASE_URL = <your Render PostgreSQL internal URL>
+```
 
 ### Frontend — Vercel
 
 The frontend is deployed on **Vercel** with the following environment variables set in project settings:
 
 ```
-REACT_APP_NAKAMA_HOST = xxxx-xx-xx.ngrok-free.app
+REACT_APP_NAKAMA_HOST = tic-tac-toe-nakama-o8hr.onrender.com
 REACT_APP_NAKAMA_PORT = 443
 REACT_APP_NAKAMA_SSL  = true
 ```
@@ -240,11 +224,10 @@ Push to GitHub — Vercel auto-deploys on every commit.
 
 ## ⚠️ Important Note
 
-The backend is exposed using **ngrok (free tier)**.
+The backend is hosted on **Render (free tier)**.
 
-- Please ensure to access the project within the **active time window**
-- The ngrok URL changes every time the server restarts
-- If the backend is not reachable, please **contact me to restart the server**
+- The server may take **~30 seconds to wake up** after a period of inactivity
+- If the backend is unreachable, please wait a moment and refresh the page
 
 ---
 

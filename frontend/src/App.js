@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { initNakama } from "./nakama";
+import { initNakama, refreshSession } from "./nakama";
 import Login from "./Login";
 import Lobby from "./Lobby";
 import Game from "./Game";
@@ -50,8 +50,12 @@ export default function App() {
     setScreen("game");
   };
 
-  const handleBackToLobby = () => {
+  const handleBackToLobby = async () => {
     setMatchId(null);
+    try {
+      const fresh = await refreshSession(session);
+      setSession(fresh);
+    } catch {}
     setScreen("lobby");
   };
 

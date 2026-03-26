@@ -22,4 +22,14 @@ export async function initNakama(username) {
   return { client, socket, session };
 }
 
+export async function refreshSession(session) {
+  try {
+    return await client.sessionRefresh(session);
+  } catch {
+    const username = localStorage.getItem("username");
+    const deviceId = localStorage.getItem("deviceId");
+    return await client.authenticateDevice(deviceId, true, username);
+  }
+}
+
 export { client };

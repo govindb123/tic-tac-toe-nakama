@@ -18,7 +18,7 @@ export default function Lobby({ socket, session, onMatchFound, onHome }) {
     try {
       const result = await client.listLeaderboardRecords(session, "tictactoe_wins", [], 10);
       setLeaderboard(result.records || []);
-    } catch (e) {}
+    } catch (e) { console.error("fetchLeaderboard error:", e); }
   }, [session]);
 
   useEffect(() => { fetchLeaderboard(); }, [fetchLeaderboard]);
